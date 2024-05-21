@@ -99,7 +99,7 @@ class ValDataset(data.Dataset):
 def load_data(data_path, filename, size, rand_frame=None):
     # Load images and labels
     nim = nib.load(join(data_path, filename, 'sa.nii.gz'))
-    image = nim.get_data()[:, :, :, :]
+    image = nim.get_fdata()[:, :, :, :]
     image = np.array(image, dtype='float32')
 
     # generate random index for t and z dimension
@@ -117,11 +117,11 @@ def load_data(data_path, filename, size, rand_frame=None):
     image_sa = image_sa[np.newaxis]
 
     nim = nib.load(join(data_path, filename, 'sa_'+'ED'+'.nii.gz'))
-    image = nim.get_data()[:, :, :]
+    image = nim.get_fdata()[:, :, :]
     image = np.array(image, dtype='float32')
 
     nim_seg = nib.load(join(data_path, filename, 'label_sa_'+'ED'+'.nii.gz'))
-    seg = nim_seg.get_data()[:, :, :]
+    seg = nim_seg.get_fdata()[:, :, :]
 
     image_ED = image[..., rand_z]
     image_ED /= image_max

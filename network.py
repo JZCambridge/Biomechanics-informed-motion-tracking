@@ -93,7 +93,7 @@ class Registration_Net(nn.Module):
         self.conv7 = conv(64, 64, 1, 1, 0)
         self.conv8 = nn.Conv2d(64, 2, 1)
 
-    def forward(self, x, x_pred, x_img, mode='bilinear'):
+    def forward(self, x, x_pred, x_img, mask_def=None, mode='bilinear'):
         # x: source image; x_pred: target image; x_img: source image or segmentation map
         net = {}
         net['conv0'] = x
@@ -113,8 +113,54 @@ class Registration_Net(nn.Module):
         net['out'] = torch.tanh(self.conv8(net['comb_2']))
         net['grid'] = generate_grid(x_img, net['out'])
         net['fr_st'] = F.grid_sample(x_img, net['grid'], mode=mode)
+        
+        # generate reverse mask
+        if mask_def is not None: net['reverse_mask'] = self.reverse_deformation(mask_def, net['out'])
 
         return net
+    
+    # Function to reverse the deformation
+    def reverse_deformation(self, x_deformed, offset, threshold=0.1, clean=False):
+        # Compute the negative offset
+        negative_offset = -offset
+        
+        # Generate the reversed grid
+        reversed_grid = generate_grid(x_deformed, negative_offset).float()
+    
+        # Ensure x_deformed is of type float
+        x_deformed = x_deformed.float()
+    
+        # Sample the deformed image using the reversed grid
+        x_restored = F.grid_sample(x_deformed, reversed_grid, mode='bilinear', align_corners=True)
+    
+        # Apply the threshold
+        x_thresholded = (x_restored > threshold).float()
+        
+        # Convert to integer form
+        x_thresholded = x_thresholded.int()
+        
+        if clean:
+            x_clean = x_thresholded[0,0,:,:].cpu().numpy()
+            x_thresholded[0,0,:,:] = self.image_cleaning(x_clean)
+        
+        return x_thresholded
+    
+    def image_cleaning(self, img):
+        from scipy.ndimage import binary_closing, binary_opening
+        import numpy as np
+        
+        # Define the structuring element
+        structuring_element = np.ones((2, 2))
+
+        # Perform closing
+        closed_image = binary_closing(img, structure=structuring_element)
+
+        # Perform opening
+        opened_image = binary_opening(closed_image, structure=structuring_element)
+        
+        opened_image = torch.from_numpy(opened_image)
+        
+        return opened_image
 
 
 class MotionVAE2D(BasicMoudule):

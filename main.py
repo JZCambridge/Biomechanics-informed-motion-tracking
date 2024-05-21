@@ -20,7 +20,7 @@ n_epoch = 500
 base_err = 100
 
 model_load_path = './models/registration_model_pretrained_0.001_32.pth'
-model_save_path = './models/registration_model.pth'
+model_save_path = './models/TestJZ/registration_model.pth'
 VAE_model_load_path = './models/VAE_recon_model_pretrained.pth'
 
 # build and load registration and regularisation models
